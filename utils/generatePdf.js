@@ -302,10 +302,20 @@ export const generatePdfFromText = async (markdownText, outputPath) => {
   `;
 
   const browser = await puppeteer.launch({
-    headless: "new",
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    headless: true,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-gpu",
+      "--disable-web-security",
+      "--disable-features=VizDisplayCompositor",
+    ],
+    executablePath:
+      process.env.NODE_ENV === "production"
+        ? "/opt/render/.cache/puppeteer/chrome/linux-*/chrome-linux*/chrome"
+        : undefined,
   });
-
   const page = await browser.newPage();
   await page.setContent(html, { waitUntil: "load" });
 
