@@ -1,8 +1,7 @@
 import express from "express";
 import multer from "multer";
 import { handleUploadAndGenerateDocs } from "../controllers/docController.js";
-import { generatePdfDoc } from "../controllers/pdfController.js";
-import axios from "axios";
+import { getMarkdownDoc } from "../controllers/pdfController.js";
 
 const router = express.Router();
 
@@ -12,15 +11,14 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// Generate documentation from uploaded ZIP
 router.post(
   "/generate",
   upload.single("projectZip"),
   handleUploadAndGenerateDocs
 );
 
-
-router.get("/download/:filename", generatePdfDoc);
-
-
+// Get markdown documentation
+router.get("/docs/:filename", getMarkdownDoc);
 
 export default router;
