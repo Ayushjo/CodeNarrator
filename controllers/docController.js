@@ -32,7 +32,7 @@ function parseFiles(dir) {
   return results;
 }
 
-// ✅ Main controller using OpenRouter + Claude
+// ✅ Main controller - Returns JSON data instead of PDF
 export const handleUploadAndGenerateDocs = async (req, res) => {
   try {
     console.log("🚀 Starting documentation generation...");
@@ -70,6 +70,8 @@ export const handleUploadAndGenerateDocs = async (req, res) => {
 - Example usages
 - Any dependencies
 
+Format the response in clean markdown.
+
 Code:
 \`\`\`
 ${file.content}
@@ -78,7 +80,6 @@ ${file.content}
       try {
         console.log(`🔁 Processing file: ${path.basename(file.file)}`);
 
-        // ✅ FIXED: Correct OpenRouter API format
         const response = await axios.post(
           "https://openrouter.ai/api/v1/chat/completions",
           {
@@ -96,14 +97,13 @@ ${file.content}
             headers: {
               Authorization: `Bearer ${OPENROUTER_API_KEY}`,
               "Content-Type": "application/json",
-              "HTTP-Referer": "http://localhost:5000", // Optional: your app URL
-              "X-Title": "ZenDocs Generator", // Optional: your app name
+              "HTTP-Referer": "http://localhost:5000",
+              "X-Title": "ZenDocs Generator",
             },
-            timeout: 60000, // Increased timeout
+            timeout: 60000,
           }
         );
 
-        // ✅ FIXED: Correct response parsing
         const summary =
           response.data?.choices?.[0]?.message?.content ||
           "No summary returned";
@@ -112,13 +112,13 @@ ${file.content}
           file: path.basename(file.file),
           fullPath: file.file,
           summary,
+          status: "success",
         });
 
         console.log(`✅ Documented: ${path.basename(file.file)}`);
       } catch (err) {
         console.error(`❌ Failed for ${file.file}:`, err.message);
 
-        // ✅ Better error logging
         if (err.response) {
           console.error(`Status: ${err.response.status}`);
           console.error(`Response:`, err.response.data);
@@ -128,6 +128,7 @@ ${file.content}
           file: path.basename(file.file),
           fullPath: file.file,
           summary: `⚠️ Failed to generate documentation: ${err.message}`,
+          status: "error",
         });
       }
 
@@ -135,31 +136,48 @@ ${file.content}
       await new Promise((resolve) => setTimeout(resolve, 2000));
     }
 
-    // ✅ Generate documentation file
-    const docPath = `generated_docs/docs-${Date.now()}.md`;
-    const docText = docs
+    // Generate full documentation text
+    const fullDocumentation = docs
       .map(
-        (d) => `### ${d.file}\n\n**File Path:** ${d.fullPath}\n\n${d.summary}`
+        (d) =>
+          `## ${d.file}\n\n**File Path:** \`${d.fullPath}\`\n\n${d.summary}`
       )
-      .join("\n\n" + "=".repeat(50) + "\n\n");
+      .join("\n\n" + "---".repeat(20) + "\n\n");
 
-    await fs.outputFile(docPath, docText);
+    // Save documentation file (optional, for backup)
+    const docPath = `generated_docs/docs-${Date.now()}.md`;
+    await fs.outputFile(docPath, fullDocumentation);
 
-    console.log("📄 Documentation file generated.");
+    console.log("📄 Documentation generated successfully!");
 
+    // Clean up temporary files
+    try {
+      await fs.remove(zipPath);
+      await fs.remove(extractTo);
+    } catch (cleanupErr) {
+      console.warn(
+        "Warning: Failed to clean up temporary files:",
+        cleanupErr.message
+      );
+    }
+
+    // Return the documentation data directly
     res.status(200).json({
       message: "Documentation generated successfully",
-      file: docPath,
       processedFiles: files.length,
-      docs: docs.map((d) => ({
+      successfulFiles: docs.filter((d) => d.status === "success").length,
+      documentation: fullDocumentation,
+      files: docs.map((d) => ({
         file: d.file,
-        hasDocumentation: !d.summary.includes("Failed"),
+        fullPath: d.fullPath,
+        hasDocumentation: d.status === "success",
+        summary: d.summary,
       })),
     });
   } catch (err) {
     console.error("❌ Fatal error:", err.message);
     res.status(500).json({
-      message: "Unexpected error",
+      message: "Unexpected error occurred",
       error: err.message,
       stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
     });
