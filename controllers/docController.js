@@ -3,7 +3,7 @@ import unzipper from "unzipper";
 import path from "path";
 import axios from "axios";
 
-// ✅ Extract uploaded ZIP
+
 async function extractZip(filePath, extractTo) {
   await fs.ensureDir(extractTo);
   await fs
@@ -14,7 +14,6 @@ async function extractZip(filePath, extractTo) {
   return extractTo;
 }
 
-// ✅ Parse JS/TS files
 function parseFiles(dir) {
   const results = [];
   const files = fs.readdirSync(dir);
@@ -32,7 +31,6 @@ function parseFiles(dir) {
   return results;
 }
 
-// ✅ Main controller - Returns JSON data instead of PDF
 export const handleUploadAndGenerateDocs = async (req, res) => {
   try {
     console.log("🚀 Starting documentation generation...");
@@ -132,11 +130,10 @@ ${file.content}
         });
       }
 
-      // Rate limiting - wait between requests
+   
       await new Promise((resolve) => setTimeout(resolve, 2000));
     }
 
-    // Generate full documentation text
     const fullDocumentation = docs
       .map(
         (d) =>
@@ -144,13 +141,11 @@ ${file.content}
       )
       .join("\n\n" + "---".repeat(20) + "\n\n");
 
-    // Save documentation file (optional, for backup)
     const docPath = `generated_docs/docs-${Date.now()}.md`;
     await fs.outputFile(docPath, fullDocumentation);
 
     console.log("📄 Documentation generated successfully!");
 
-    // Clean up temporary files
     try {
       await fs.remove(zipPath);
       await fs.remove(extractTo);
@@ -161,7 +156,6 @@ ${file.content}
       );
     }
 
-    // Return the documentation data directly
     res.status(200).json({
       message: "Documentation generated successfully",
       processedFiles: files.length,

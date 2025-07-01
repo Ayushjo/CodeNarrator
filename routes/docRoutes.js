@@ -11,7 +11,6 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Generate documentation from uploaded ZIP
 router.post(
   "/generate",
   upload.single("projectZip"),
