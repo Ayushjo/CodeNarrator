@@ -10,7 +10,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: "https://code-narrator-t1vk.vercel.app",
+    origin: "https://codenarrator.iayush.com",
   })
 );
 
